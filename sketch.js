@@ -401,6 +401,100 @@ function drawPause() {
 }
 
 function drawContinue() {
+  ellipseMode(CORNER);
+
+  //DARK OVERLAY
+  noStroke();
+  fill(0, 0, 0, 150);
+  rect(0, 0, 1280, 720);
+
+  //COINS
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(1064, 24, 176, 44, 22);
+
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(17);
+  text(`Coins: ${coins}`, 1152, 36);
+
+  //CIRCLES
+  noFill();
+  stroke(COLOR_BLUE);
+  strokeWeight(2);
+  circle(460, 90, 360);
+
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  circle(490, 120, 300);
+
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  circle(522, 152, 236);
+
+  //COUNTDOWN
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(86);
+  text("10", 640, 216);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(17);
+  text("seconds", 640, 322);
+
+  //TITLE
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(38);
+  text("OUT OF LIVES!", 640, 474);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(19);
+  text("Continue for 50 coins?", 640, 528);
+
+  //YES BUTTON
+  fill(COLOR_CARD);
+  if (isHovered(385, 584, 250, 64)) {
+    stroke(COLOR_PINK);
+    strokeWeight(4);
+  } else {
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+  }
+  rect(385, 584, 250, 64, 12);
+
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(20);
+  text("YES  •  50 COINS", 510, 616);
+
+  //NO BUTTON
+  fill(COLOR_CARD);
+  if (isHovered(645, 584, 250, 64)) {
+    stroke(COLOR_PINK);
+  } else {
+    stroke(COLOR_BORDER);
+  }
+  strokeWeight(2);
+  rect(645, 584, 250, 64, 12);
+
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(20);
+  text("NO", 770, 616);
 }
 
 function drawResults() {
