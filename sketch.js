@@ -23,6 +23,12 @@ let currentScreen = "menu";
 let coins = 0;
 let chosenLvl = 0;
 let songs = [];
+let score = 0;
+let highestCombo = 0;
+let perfectHits = 0;
+let goodHits = 0;
+let missHits = 0;
+let coinsEarned = 0;
 
 
 //P5 FUNCTIONS
@@ -100,6 +106,19 @@ function mousePressed() {
       currentScreen = "results";
     }
   }
+
+  else if (currentScreen === "results") {
+    if (isHovered(40, 642, 220, 56)) {
+      currentScreen = "game";
+    } else if (isHovered(530, 642, 220, 56)) {
+      currentScreen = "menu";
+    } else if (isHovered(1020, 642, 220, 56)) {
+      if (chosenLvl < LEVELS.length - 1) {
+        chosenLvl = chosenLvl + 1;
+      }
+      currentScreen = "game";
+    }
+  }
 }
 
 function keyPressed() {
@@ -122,6 +141,28 @@ function formatTime(seconds) {
   const minutes = floor(seconds / 60);
   const rest = floor(seconds % 60);
   return `${minutes}:${nf(rest, 2)}`;
+}
+
+function getAccuracy() {
+  const totalHits = perfectHits + goodHits + missHits;
+  if (totalHits === 0) {
+    return 0;
+  }
+  return (perfectHits + goodHits * 0.5) / totalHits * 100;
+}
+
+function getRank(accuracy) {
+  if (accuracy >= 95) {
+    return "S";
+  } else if (accuracy >= 90) {
+    return "A";
+  } else if (accuracy >= 80) {
+    return "B";
+  } else if (accuracy >= 70) {
+    return "C";
+  } else {
+    return "D";
+  }
 }
 
 
@@ -498,9 +539,180 @@ function drawContinue() {
 }
 
 function drawResults() {
-  background(30);
-  fill(255);
-  text("results", width / 2, height / 2);
+  background(COLOR_BACKGROUND);
+  ellipseMode(CORNER);
+
+  const level = LEVELS[chosenLvl];
+  const accuracy = getAccuracy();
+
+  //NAV
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(0, 0, 1280, 80);
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(30);
+  text("RESULTS", 40, 24);
+
+  //COINS EARNED
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(1064, 20, 176, 44, 22);
+
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(17);
+  text(`+${coinsEarned} coins`, 1152, 32);
+
+  //CIRCLES
+  noFill();
+  stroke(COLOR_BLUE);
+  strokeWeight(2);
+  circle(120, 150, 400);
+
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  circle(152, 182, 336);
+
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  circle(188, 218, 264);
+
+  //RANK
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_SUBTEXT);
+  textSize(16);
+  text("RANK", 320, 248);
+
+  fill(COLOR_YELLOW);
+  textSize(140);
+  text(getRank(accuracy), 320, 264);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(16);
+  text(`${level.name}  •  ${level.difficulty}`, 320, 420);
+
+  //SCORE CARD
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  rect(600, 110, 640, 124, 18);
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_SUBTEXT);
+  textSize(14);
+  text("SCORE", 630, 132);
+
+  fill(COLOR_TEXT);
+  textSize(50);
+  text(score, 630, 154);
+
+  //STATS CARD
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(600, 254, 640, 108, 18);
+
+  const stats = [
+    ["ACCURACY", `${nf(accuracy, 1, 1)}%`],
+    ["HIGHEST COMBO", `x${highestCombo}`],
+    ["COINS EARNED", `+${coinsEarned}`]
+  ];
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  for (let i = 0; i < stats.length; i++) {
+    const statX = 630 + i * 205;
+
+    textStyle(BOLD);
+    fill(COLOR_SUBTEXT);
+    textSize(13);
+    text(stats[i][0], statX, 276);
+
+    fill(COLOR_TEXT);
+    textSize(32);
+    text(stats[i][1], statX, 298);
+  }
+
+  //HIT TILES
+  const hits = [
+    ["PERFECT", perfectHits, COLOR_PINK],
+    ["GOOD", goodHits, COLOR_BORDER],
+    ["MISS", missHits, COLOR_CARD]
+  ];
+
+  for (let i = 0; i < hits.length; i++) {
+    const tileX = 600 + i * 220;
+
+    fill(COLOR_CARD);
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+    rect(tileX, 382, 200, 208, 18);
+
+    fill(hits[i][2]);
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+    circle(tileX + 85, 409, 30);
+
+    noStroke();
+    textAlign(CENTER, TOP);
+    textStyle(BOLD);
+    fill(COLOR_TEXT);
+    textSize(40);
+    text(hits[i][1], tileX + 100, 458);
+
+    fill(COLOR_SUBTEXT);
+    textSize(15);
+    text(hits[i][0], tileX + 100, 516);
+  }
+
+  //BOTTOM BAR
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(0, 620, 1280, 100);
+
+  //BUTTONS
+  const buttons = [
+    ["RETRY", 40],
+    ["MENU", 530],
+    ["NEXT LEVEL", 1020]
+  ];
+
+  for (let i = 0; i < buttons.length; i++) {
+    const buttonX = buttons[i][1];
+
+    fill(COLOR_CARD);
+    if (isHovered(buttonX, 642, 220, 56)) {
+      stroke(COLOR_PINK);
+      strokeWeight(4);
+    } else {
+      stroke(COLOR_BORDER);
+      strokeWeight(2);
+    }
+    rect(buttonX, 642, 220, 56, 12);
+
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textStyle(BOLD);
+    fill(COLOR_TEXT);
+    textSize(20);
+    text(buttons[i][0], buttonX + 110, 670);
+  }
 }
 
 function drawOptions() {
