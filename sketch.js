@@ -48,9 +48,15 @@ function draw() {
   } else if (currentScreen === "game") {
     drawGame();
   } else if (currentScreen === "pause") {
+    drawGame();
     drawPause();
+  } else if (currentScreen === "continue") {
+    drawGame();
+    drawContinue();
   } else if (currentScreen === "results") {
     drawResults();
+  } else if (currentScreen === "options") {
+    drawOptions();
   }
 }
 
@@ -59,11 +65,11 @@ function mousePressed() {
     if (isHovered(780, 214, 500, 84)) {
       currentScreen = "levelSelect";
     } else if (isHovered(780, 314, 500, 84)) {
-      currentScreen = "game";
+      currentScreen = "options";
     } else if (isHovered(780, 414, 500, 84)) {
       currentScreen = "pause";
     } else if (isHovered(780, 514, 500, 84)) {
-      currentScreen = "results";
+      currentScreen = "continue";
     }
   }
   
@@ -72,6 +78,35 @@ function mousePressed() {
       currentScreen = "menu";
     }
     if (isHovered(1050, 642, 190, 56)) {
+      currentScreen = "game";
+    }
+  }
+
+   else if (currentScreen === "pause") {
+    if (isHovered(490, 310, 300, 64)) {
+      currentScreen = "game";
+    } else if (isHovered(490, 392, 300, 64)) {
+      currentScreen = "options";
+    } else if (isHovered(490, 474, 300, 64)) {
+      currentScreen = "menu";
+    }
+  }
+
+  else if (currentScreen === "continue") {
+    if (isHovered(385, 584, 250, 64) && coins >= 50) {
+      coins = coins - 50;
+      currentScreen = "game";
+    } else if (isHovered(645, 584, 250, 64)) {
+      currentScreen = "results";
+    }
+  }
+}
+
+function keyPressed() {
+  if (keyCode === ESCAPE) {
+    if (currentScreen === "game") {
+      currentScreen = "pause";
+    } else if (currentScreen === "pause") {
       currentScreen = "game";
     }
   }
@@ -311,15 +346,73 @@ function drawGame() {
 }
 
 function drawPause() {
-  background(30);
-  fill(255);
-  text("pause", width / 2, height / 2);
+  //DARK OVERLAY
+  noStroke();
+  fill(0, 0, 0, 150);
+  rect(0, 0, 1280, 720);
+
+  //PAUSE CARD
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  rect(440, 100, 400, 520, 24);
+
+  //PAUSE ICON
+  noStroke();
+  fill(COLOR_PINK);
+  rect(610, 136, 18, 54, 5);
+  rect(652, 136, 18, 54, 5);
+
+  //TITLE
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(42);
+  text("PAUSE", 640, 206);
+
+  //BUTTONS
+  const buttons = ["CONTINUE", "OPTIONS", "QUIT"];
+  for (let i = 0; i < buttons.length; i++) {
+    const buttonY = 310 + i * 82;
+
+    fill(COLOR_CARD);
+    if (isHovered(490, buttonY, 300, 64)) {
+      stroke(COLOR_PINK);
+    } else {
+      stroke(COLOR_BORDER);
+    }
+    strokeWeight(2);
+    rect(490, buttonY, 300, 64, 12);
+
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textStyle(BOLD);
+    fill(COLOR_TEXT);
+    textSize(20);
+    text(buttons[i], 640, buttonY + 32);
+  }
+
+  //HINT
+  textAlign(CENTER, TOP);
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(15);
+  text("press esc to continue", 640, 568);
+}
+
+function drawContinue() {
 }
 
 function drawResults() {
   background(30);
   fill(255);
   text("results", width / 2, height / 2);
+}
+
+function drawOptions() {
+  background(30);
+  fill(255);
+  text("options", width / 2, height / 2);
 }
 
 
