@@ -13,68 +13,18 @@ Als speler wil ik op een cirkel klikken als de ring hem raakt, zodat ik punten k
 
 ---
 
-## 2. Score en combo zien tijdens het spelen
+## 2. Muziek gelijk met de cirkels
 
 **User story**
-Als speler wil ik mijn score en combo zien, zodat ik weet hoe goed ik het doe.
+Als speler wil ik dat de cirkels op de beat van het nummer komen, zodat het een ritmespel is.
 
 **Acceptatiecriteria**
-- [x] Score staat linksboven en gaat omhoog bij een hit
-- [x] Combo staat linksonder en gaat +1 bij elke hit
-- [x] Combo gaat terug naar 0 bij een mis
+- [x] Het nummer start tegelijk met het level
+- [x] De timing van de cirkels volgt de tijd van de muziek
 
 ---
 
-## 3. Levens verliezen bij missen
-
-**User story**
-Als speler wil ik levens verliezen als ik mis, zodat het spel uitdagend blijft.
-
-**Acceptatiecriteria**
-- [x] Levensbalk staat rechtsboven
-- [x] Bij een mis wordt de balk korter
-- [x] Als de balk leeg is, verschijnt het game over-scherm
-
----
-
-## 4. Spel pauzeren met P
-
-**User story**
-Als speler wil ik het spel kunnen pauzeren, zodat ik even weg kan zonder te verliezen.
-
-**Acceptatiecriteria**
-- [ ] Op P drukken zet het spel stil en toont het pauzescherm (nu werkt dit met ESC, niet met P)
-- [x] Cirkels en ringen bewegen niet tijdens pauze
-- [x] Doorgaan laat het spel verder gaan waar het stopte
-
----
-
-## 5. Level kiezen
-
-**User story**
-Als speler wil ik een level kiezen, zodat ik zelf bepaal hoe moeilijk het is.
-
-**Acceptatiecriteria**
-- [x] Levelkeuze toont level 1, 2 en 3
-- [x] Een level kiezen en op PLAY klikken start dat level
-- [x] Alle levels zijn meteen speelbaar, er zit niks op slot
-
----
-
-## 6. Resultaten zien na een level
-
-**User story**
-Als speler wil ik na een level mijn resultaten zien, zodat ik weet wat ik kan verbeteren.
-
-**Acceptatiecriteria**
-- [x] Het resultatenscherm toont score, hoogste combo en aantal perfect, goed en mis
-- [x] Er is een knop om opnieuw te spelen
-- [x] Er is een knop terug naar het menu
-
-
----
-
-## 7. Raken met Z of X
+## 3. Raken met Z of X
 
 **User story**
 Als speler wil ik een cirkel ook met Z of X kunnen raken, zodat ik niet alleen hoef te klikken.
@@ -85,7 +35,7 @@ Als speler wil ik een cirkel ook met Z of X kunnen raken, zodat ik niet alleen h
 
 ---
 
-## 8. Perfect, Good en Miss
+## 4. Perfect, Good en Miss
 
 **User story**
 Als speler wil ik Perfect, Good of Miss krijgen op basis van mijn timing, zodat ik weet hoe precies ik was.
@@ -98,18 +48,56 @@ Als speler wil ik Perfect, Good of Miss krijgen op basis van mijn timing, zodat 
 
 ---
 
-## 9. Muziek gelijk met de cirkels
+## 5. Score zien tijdens het spelen
 
 **User story**
-Als speler wil ik dat de cirkels op de beat van het nummer komen, zodat het een ritmespel is.
+Als speler wil ik mijn score zien, zodat ik weet hoeveel punten ik heb.
 
 **Acceptatiecriteria**
-- [x] Het nummer start tegelijk met het level
-- [x] De timing van de cirkels volgt de tijd van de muziek
+- [x] Score staat linksboven en gaat omhoog bij een hit
+- [x] De score staat de hele tijd in beeld tijdens het spelen
 
 ---
 
-## 10. Hoofdmenu
+## 6. Combo zien tijdens het spelen
+
+**User story**
+Als speler wil ik mijn combo zien, zodat ik weet hoeveel hits ik achter elkaar heb.
+
+**Acceptatiecriteria**
+- [x] Combo staat linksonder en gaat +1 bij elke hit
+- [x] Combo gaat terug naar 0 bij een mis
+
+---
+
+## 7. Levens verliezen bij missen
+
+**User story**
+Als speler wil ik levens verliezen als ik mis, zodat het spel uitdagend blijft.
+
+**Acceptatiecriteria**
+- [x] Levensbalk staat rechtsboven
+- [x] Bij een mis wordt de balk korter
+- [x] Als de balk leeg is, verschijnt het OUT OF LIVES-scherm
+
+---
+
+## 8. Spel pauzeren
+
+**User story**
+Als speler wil ik het spel kunnen pauzeren, zodat ik even weg kan zonder te verliezen.
+
+**Acceptatiecriteria**
+- [x] Op ESC of de pauzeknop drukken zet het spel stil en toont het pauzescherm
+- [x] Cirkels en ringen bewegen niet tijdens pauze
+- [x] Doorgaan laat het spel verder gaan waar het stopte
+- [x] Pauzescherm heeft Continue, Options en Quit
+- [x] Quit stopt de muziek en gaat naar het menu
+- [ ] Pauzescherm toont mijn score en combo (zoals in de schets)
+
+---
+
+## 9. Hoofdmenu
 
 **User story**
 Als speler wil ik een hoofdmenu met knoppen, zodat ik weet wat ik kan doen.
@@ -121,6 +109,18 @@ Als speler wil ik een hoofdmenu met knoppen, zodat ik weet wat ik kan doen.
 
 ---
 
+## 10. Level kiezen
+
+**User story**
+Als speler wil ik een level kiezen, zodat ik zelf bepaal hoe moeilijk het is.
+
+**Acceptatiecriteria**
+- [x] Levelkeuze toont level 1, 2 en 3
+- [x] Een level kiezen en op PLAY klikken start dat level
+- [x] Alle levels zijn meteen speelbaar, er zit niks op slot
+
+---
+
 ## 11. Levelinfo zien
 
 **User story**
@@ -129,11 +129,23 @@ Als speler wil ik bij een level de highscore, het aantal noten en de lengte zien
 **Acceptatiecriteria**
 - [x] Highscore, noten en lengte staan onderaan de levelkeuze
 - [x] Moeilijkheid staat als bolletjes op de levelkaart
-- [x] PLAY, klikken op het grote rondje of ENTER start het level
 
 ---
 
-## 12. Rank na een level
+## 12. Resultaten zien na een level
+
+**User story**
+Als speler wil ik na een level mijn resultaten zien, zodat ik weet wat ik kan verbeteren.
+
+**Acceptatiecriteria**
+- [x] Het resultatenscherm toont score, hoogste combo en aantal perfect, goed en mis
+- [x] Er is een knop om opnieuw te spelen
+- [x] Er is een knop terug naar het menu
+- [x] Knop Next level gaat naar het volgende level (uit bij het laatste level)
+
+---
+
+## 13. Rank na een level
 
 **User story**
 Als speler wil ik een rank krijgen na een level, zodat ik in één oogopslag zie hoe goed het ging.
@@ -141,11 +153,10 @@ Als speler wil ik een rank krijgen na een level, zodat ik in één oogopslag zie
 **Acceptatiecriteria**
 - [x] Rank S, A, B, C of D op basis van accuracy
 - [x] Accuracy en verdiende coins staan op het resultatenscherm
-- [x] Knop Next level gaat naar het volgende level (uit bij het laatste level)
 
 ---
 
-## 13. Doorgaan met coins
+## 14. Doorgaan met coins
 
 **User story**
 Als speler wil ik bij 0 levens kunnen doorgaan voor coins, zodat ik een level niet meteen kwijt ben.
@@ -158,19 +169,29 @@ Als speler wil ik bij 0 levens kunnen doorgaan voor coins, zodat ik een level ni
 
 ---
 
-## 14. Coins en highscore bewaren
+## 15. Coins verdienen
+
+**User story**
+Als speler wil ik coins verdienen met spelen, zodat ik iets heb om uit te geven.
+
+**Acceptatiecriteria**
+- [x] Na een level krijg ik 1 coin per 1000 punten
+- [x] Mijn coins staan rechtsboven in menu en levelkeuze
+
+---
+
+## 16. Voortgang bewaren
 
 **User story**
 Als speler wil ik dat mijn coins en highscores bewaard blijven, zodat ik niet steeds opnieuw begin.
 
 **Acceptatiecriteria**
-- [x] Na een level krijg ik 1 coin per 1000 punten
 - [x] Een hogere score wordt de nieuwe highscore van dat level
 - [x] Coins en highscores blijven bewaard als ik de pagina herlaad
 
 ---
 
-## 15. Geluid instellen
+## 17. Geluid instellen
 
 **User story**
 Als speler wil ik het volume kunnen aanpassen, zodat het niet te hard of te zacht is.
@@ -182,7 +203,7 @@ Als speler wil ik het volume kunnen aanpassen, zodat het niet te hard of te zach
 
 ---
 
-## 16. Uitleg in Options
+## 18. Uitleg in Options
 
 **User story**
 Als nieuwe speler wil ik de besturing en uitleg kunnen lezen, zodat ik snap hoe het spel werkt.
@@ -193,19 +214,7 @@ Als nieuwe speler wil ik de besturing en uitleg kunnen lezen, zodat ik snap hoe 
 
 ---
 
-## 17. Pauzescherm
-
-**User story**
-Als speler wil ik in het pauzemenu kunnen kiezen wat ik doe, zodat ik niet vastzit.
-
-**Acceptatiecriteria**
-- [x] Pauzescherm heeft Continue, Options en Quit
-- [x] Quit stopt de muziek en gaat naar het menu
-- [ ] Pauzescherm toont mijn score en combo (zoals in de schets)
-
----
-
-## 18. Hold-noot
+## 19. Hold-noot
 
 **User story**
 Als speler wil ik noten die ik moet vasthouden en volgen, zodat het spel meer variatie heeft.
@@ -217,20 +226,30 @@ Als speler wil ik noten die ik moet vasthouden en volgen, zodat het spel meer va
 
 ---
 
-## 19. Store
+## 20. Store bekijken
 
 **User story**
-Als speler wil ik met mijn coins een andere cursor of cirkel kopen, zodat ik het spel kan aanpassen.
+Als speler wil ik in de store zien wat ik kan kopen, zodat ik weet waar ik voor spaar.
 
 **Acceptatiecriteria**
 - [ ] Store toont tabbladen Cursors en Circles met prijzen
+- [ ] Back gaat terug naar het menu
+
+---
+
+## 21. Item kopen in de store
+
+**User story**
+Als speler wil ik met mijn coins een cursor of cirkel kopen, zodat ik het spel kan aanpassen.
+
+**Acceptatiecriteria**
 - [ ] Een item kiezen opent "Buy this item?" met Yes en No
 - [ ] Een gekocht item kan ik kiezen en zie ik in het spel
 - [ ] Yes werkt niet als ik te weinig coins heb
 
 ---
 
-## 20. Buy Coins
+## 22. Buy Coins
 
 **User story**
 Als speler wil ik coinpakketten zien, zodat ik weet hoe ik meer coins krijg.
@@ -242,7 +261,7 @@ Als speler wil ik coinpakketten zien, zodat ik weet hoe ik meer coins krijg.
 
 ---
 
-## 21. Besturing kiezen
+## 23. Besturing kiezen
 
 **User story**
 Als speler wil ik in Options kiezen tussen muis en Z/X, zodat de besturing past bij hoe ik speel.
