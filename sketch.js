@@ -86,6 +86,16 @@ function setup() {
   for (let i = 0; i < LEVELS.length; i++) {
     LEVELS[i].length = songs[i].duration();
   }
+
+  if (getItem("coins") !== null) {
+    coins = getItem("coins");
+  }
+
+  for (let i = 0; i < LEVELS.length; i++) {
+    if (getItem("highscore" + i) !== null) {
+      LEVELS[i].highscore = getItem("highscore" + i);
+    }
+  }
 }
 
 function draw() {
@@ -201,6 +211,7 @@ function clickPause() {
 
 function clickContinue() {
   if (isOver(CONTINUE_YES) && coins >= CONTINUE_COST) {
+    saveProgress();
     coins = coins - CONTINUE_COST;
     lives = maxLives;
     resumeGame();
@@ -379,6 +390,7 @@ function finishLevel() {
     LEVELS[chosenLvl].highscore = score;
   }
 
+  saveProgress();
   stopSong();
   currentScreen = "results";
 }
@@ -1265,6 +1277,14 @@ function getRank(accuracy) {
     return "C";
   } else {
     return "D";
+  }
+}
+
+function saveProgress() {
+  storeItem("coins", coins);
+
+  for (let i = 0; i < LEVELS.length; i++) {
+    storeItem("highscore" + i, LEVELS[i].highscore);
   }
 }
 
