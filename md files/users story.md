@@ -56,8 +56,8 @@ Als speler wil ik een level kiezen, zodat ik zelf bepaal hoe moeilijk het is.
 
 **Acceptatiecriteria**
 - [x] Levelkeuze toont level 1, 2 en 3
-- [ ] Klikken op een level start dat level
-- [ ] Level 3 zit op slot tot level 2 gehaald is
+- [x] Een level kiezen en op PLAY klikken start dat level
+- [x] Alle levels zijn meteen speelbaar, er zit niks op slot
 
 ---
 
@@ -94,7 +94,7 @@ Als speler wil ik Perfect, Good of Miss krijgen op basis van mijn timing, zodat 
 - [x] Heel dicht op het raakmoment = Perfect (300 punten)
 - [x] Iets ernaast = Good (100 punten)
 - [x] Perfect geeft een beetje leven terug
-- [ ] Er verschijnt kort "PERFECT!" of "GOOD" bij de cirkel (zoals in de schets)
+- [x] Bij een klik verschijnt een cirkeltje dat groter wordt: roze bij Perfect, blauw bij Good, paars als je naast een cirkel klikt
 
 ---
 
@@ -166,7 +166,7 @@ Als speler wil ik dat mijn coins en highscores bewaard blijven, zodat ik niet st
 **Acceptatiecriteria**
 - [x] Na een level krijg ik 1 coin per 1000 punten
 - [x] Een hogere score wordt de nieuwe highscore van dat level
-- [ ] Coins en highscores blijven bewaard als ik de pagina herlaad
+- [x] Coins en highscores blijven bewaard als ik de pagina herlaad
 
 ---
 
