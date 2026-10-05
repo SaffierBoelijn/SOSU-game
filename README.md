@@ -34,7 +34,7 @@ The game loads mp3 files, so it has to run on a (local) server. Just double-clic
 ## Files
 
 - `index.html` – loads p5.js, p5.sound and the sketch
-- `sketch.js` – all the game code
+- `src/sketch.js` – all the game code
 - `style.css` – centers the canvas
 - `libraries/` – p5.js and p5.sound
 - `songs/` – the 3 songs
