@@ -1,19 +1,1284 @@
-//COLORS
-const COLOR_BACKGROUND = "#1E1B2E"; // achtergrond
-const COLOR_CARD = "#2B2640";       // kaarten en balken
-const COLOR_PANEL = "#3A3452";      // lichtere vlakken
-const COLOR_BORDER = "#5A5280";     // randen
-const COLOR_PINK = "#FF66AA";       // knoppen en selectie
-const COLOR_BLUE = "#66CCFF";       // krimpende ringen
-const COLOR_YELLOW = "#FFD166";     // rang
-const COLOR_TEXT = "#FFFFFF";       // tekst
-const COLOR_SUBTEXT = "#A9A3C4";    // grijze tekst
+// ===== COLORS =====
+const COLOR_BACKGROUND = "#1E1B2E";
+const COLOR_CARD = "#2B2640";
+const COLOR_PANEL = "#3A3452";
+const COLOR_BORDER = "#5A5280";
+const COLOR_PINK = "#FF66AA";
+const COLOR_BLUE = "#66CCFF";
+const COLOR_YELLOW = "#FFD166";
+const COLOR_TEXT = "#FFFFFF";
+const COLOR_SUBTEXT = "#A9A3C4";
 
 
-//ARRAYS
+// ===== GAME RULES =====
+const HIT_FRAME = 83;
+const PERFECT_WINDOW = 6;
+const GOOD_WINDOW = 14;
+const TOO_EARLY = 24;
+const LIVES_PER_LEVEL = [5, 5, 10];
+const CONTINUE_TIME = 600;
+const CONTINUE_COST = 50;
+
+
+// ===== BUTTONS =====
+const MENU_START = { x: 780, y: 214, w: 500, h: 84 };
+const MENU_OPTIONS = { x: 780, y: 314, w: 500, h: 84 };
+const MENU_STORE = { x: 780, y: 414, w: 500, h: 84 };
+const MENU_COINS = { x: 780, y: 514, w: 500, h: 84 };
+
+const BACK_BUTTON = { x: 40, y: 642, w: 190, h: 56 };
+const PLAY_BUTTON = { x: 1050, y: 642, w: 190, h: 56 };
+const SAVE_BUTTON = { x: 1050, y: 642, w: 190, h: 56 };
+
+const PAUSE_BUTTON = { x: 580, y: 22, w: 120, h: 38 };
+const PAUSE_CONTINUE = { x: 490, y: 310, w: 300, h: 64 };
+const PAUSE_OPTIONS = { x: 490, y: 392, w: 300, h: 64 };
+const PAUSE_QUIT = { x: 490, y: 474, w: 300, h: 64 };
+
+const CONTINUE_YES = { x: 385, y: 584, w: 250, h: 64 };
+const CONTINUE_NO = { x: 645, y: 584, w: 250, h: 64 };
+
+const RESULTS_RETRY = { x: 40, y: 642, w: 220, h: 56 };
+const RESULTS_MENU = { x: 530, y: 642, w: 220, h: 56 };
+const RESULTS_NEXT = { x: 1020, y: 642, w: 220, h: 56 };
+
+
+// ===== VARIABLES =====
+let currentScreen = "menu";
+let previousScreen = "menu";
+let coins = 0;
+let chosenLvl = 0;
+let songs = [];
+let songStartTime = 0;
+
+let balls = [];
+let hitEffects = [];
+let gameFrame = 0;
+let score = 0;
+let combo = 0;
+let highestCombo = 0;
+let perfectHits = 0;
+let goodHits = 0;
+let missHits = 0;
+let coinsEarned = 0;
+let maxLives = 5;
+let lives = 5;
+let continueTimer = CONTINUE_TIME;
+
+let optionsTab = 0;
+let draggingSlider = -1;
+const VOLUME_LABELS = ["Master", "Music"];
+const volumes = [1, 1];
+const tempVolumes = [1, 1];
+
+
+// ===== P5 FUNCTIONS =====
+function preload() {
+  for (let i = 0; i < LEVELS.length; i++) {
+    songs[i] = loadSound(LEVELS[i].file);
+  }
+}
+
+function setup() {
+  createCanvas(1280, 720);
+  ellipseMode(CORNER);
+
+  for (let i = 0; i < LEVELS.length; i++) {
+    LEVELS[i].length = songs[i].duration();
+  }
+}
+
+function draw() {
+  if (currentScreen === "menu") {
+    drawMenu();
+  } else if (currentScreen === "levelSelect") {
+    drawLevelSelect();
+  } else if (currentScreen === "game") {
+    updateGame();
+    drawGame();
+  } else if (currentScreen === "pause") {
+    drawGame();
+    drawPause();
+  } else if (currentScreen === "continue") {
+    updateContinue();
+    drawGame();
+    drawContinue();
+  } else if (currentScreen === "results") {
+    drawResults();
+  } else if (currentScreen === "options") {
+    drawOptions();
+  }
+}
+
+function mousePressed() {
+  if (currentScreen === "menu") {
+    clickMenu();
+  } else if (currentScreen === "levelSelect") {
+    clickLevelSelect();
+  } else if (currentScreen === "game") {
+    clickGame();
+  } else if (currentScreen === "pause") {
+    clickPause();
+  } else if (currentScreen === "continue") {
+    clickContinue();
+  } else if (currentScreen === "results") {
+    clickResults();
+  } else if (currentScreen === "options") {
+    clickOptions();
+  }
+}
+
+function keyPressed() {
+  if (keyCode === ESCAPE && currentScreen === "game") {
+    pauseGame();
+  } else if (keyCode === ESCAPE && currentScreen === "pause") {
+    resumeGame();
+  } else if (keyCode === ENTER && currentScreen === "levelSelect") {
+    startGame();
+  } else if ((key === "z" || key === "x") && currentScreen === "game") {
+    tryHit();
+  }
+}
+
+function mouseMoved() {
+  if (currentScreen === "levelSelect") {
+    for (let i = 0; i < LEVELS.length; i++) {
+      if (isHovered(780, 165 + i * 130, 500, 110)) {
+        chosenLvl = i;
+      }
+    }
+  }
+}
+
+function mouseDragged() {
+  if (draggingSlider !== -1) {
+    tempVolumes[draggingSlider] = constrain((mouseX - 560) / 540, 0, 1);
+  }
+}
+
+function mouseReleased() {
+  draggingSlider = -1;
+}
+
+
+// ===== CLICKS PER SCREEN =====
+function clickMenu() {
+  if (isOver(MENU_START)) {
+    currentScreen = "levelSelect";
+  } else if (isOver(MENU_OPTIONS)) {
+    openOptions();
+  }
+}
+
+function clickLevelSelect() {
+  if (isOver(BACK_BUTTON)) {
+    currentScreen = "menu";
+  } else if (isOver(PLAY_BUTTON)) {
+    startGame();
+  } else if (dist(mouseX, mouseY, 360, 350) < 153) {
+    startGame();
+  }
+}
+
+function clickGame() {
+  if (isOver(PAUSE_BUTTON)) {
+    pauseGame();
+  } else {
+    tryHit();
+  }
+}
+
+function clickPause() {
+  if (isOver(PAUSE_CONTINUE)) {
+    resumeGame();
+  } else if (isOver(PAUSE_OPTIONS)) {
+    openOptions();
+  } else if (isOver(PAUSE_QUIT)) {
+    stopSong();
+    currentScreen = "menu";
+  }
+}
+
+function clickContinue() {
+  if (isOver(CONTINUE_YES) && coins >= CONTINUE_COST) {
+    coins = coins - CONTINUE_COST;
+    lives = maxLives;
+    resumeGame();
+  } else if (isOver(CONTINUE_NO)) {
+    stopSong();
+    currentScreen = "results";
+  }
+}
+
+function clickResults() {
+  if (isOver(RESULTS_RETRY)) {
+    startGame();
+  } else if (isOver(RESULTS_MENU)) {
+    currentScreen = "menu";
+  } else if (isOver(RESULTS_NEXT) && chosenLvl < LEVELS.length - 1) {
+    chosenLvl = chosenLvl + 1;
+    startGame();
+  }
+}
+
+function clickOptions() {
+  if (isOver(BACK_BUTTON)) {
+    currentScreen = previousScreen;
+  } else if (isOver(SAVE_BUTTON)) {
+    volumes[0] = tempVolumes[0];
+    volumes[1] = tempVolumes[1];
+  }
+
+  //TABS
+  for (let i = 0; i < 3; i++) {
+    if (isHovered(56, 130 + i * 70, 268, 58)) {
+      optionsTab = i;
+    }
+  }
+
+  //SLIDERS
+  if (optionsTab === 0) {
+    for (let i = 0; i < volumes.length; i++) {
+      if (isHovered(545, 191 + i * 64, 570, 36)) {
+        draggingSlider = i;
+        tempVolumes[i] = constrain((mouseX - 560) / 540, 0, 1);
+      }
+    }
+  }
+}
+
+function openOptions() {
+  previousScreen = currentScreen;
+  tempVolumes[0] = volumes[0];
+  tempVolumes[1] = volumes[1];
+  currentScreen = "options";
+}
+
+
+// ===== GAME =====
+function startGame() {
+  balls = [];
+  const levelBalls = LEVELS[chosenLvl].balls;
+
+  for (let i = 0; i < levelBalls.length; i++) {
+    balls.push({
+      x: levelBalls[i].x,
+      y: levelBalls[i].y,
+      start: levelBalls[i].start,
+      number: i + 1,
+      visible: true
+    });
+  }
+
+  gameFrame = 0;
+  score = 0;
+  combo = 0;
+  highestCombo = 0;
+  perfectHits = 0;
+  goodHits = 0;
+  missHits = 0;
+  coinsEarned = 0;
+  hitEffects = [];
+  maxLives = LIVES_PER_LEVEL[chosenLvl];
+  lives = maxLives;
+
+  playSong();
+  currentScreen = "game";
+}
+
+function updateGame() {
+  gameFrame = (getAudioContext().currentTime - songStartTime) * 60;
+
+  for (let i = 0; i < balls.length; i++) {
+    if (balls[i].visible && gameFrame > balls[i].start + HIT_FRAME + GOOD_WINDOW) {
+      balls[i].visible = false;
+      missHits = missHits + 1;
+      loseLife();
+    }
+  }
+
+  if (lives <= 0) {
+    goToContinue();
+    return;
+  }
+
+  let allDone = true;
+  for (let i = 0; i < balls.length; i++) {
+    if (balls[i].visible) {
+      allDone = false;
+    }
+  }
+  if (allDone) {
+    finishLevel();
+  }
+}
+
+function tryHit() {
+  let ball = null;
+  for (let i = 0; i < balls.length; i++) {
+    const b = balls[i];
+    if (b.visible && gameFrame >= b.start && dist(mouseX, mouseY, b.x, b.y) < 55) {
+      ball = b;
+      break;
+    }
+  }
+
+  if (ball === null) {
+    loseLife();
+    addHitEffect(mouseX, mouseY, COLOR_BORDER);
+    if (lives <= 0) {
+      goToContinue();
+    }
+    return;
+  }
+
+  const diff = abs(gameFrame - (ball.start + HIT_FRAME));
+
+  if (gameFrame < ball.start + HIT_FRAME - TOO_EARLY) {
+    return;
+  }
+
+  if (diff <= PERFECT_WINDOW) {
+    perfectHits = perfectHits + 1;
+    score = score + 300;
+    combo = combo + 1;
+    lives = min(maxLives, lives + 0.5);
+    addHitEffect(ball.x, ball.y, COLOR_PINK);
+  } else if (diff <= GOOD_WINDOW) {
+    goodHits = goodHits + 1;
+    score = score + 100;
+    combo = combo + 1;
+    addHitEffect(ball.x, ball.y, COLOR_BLUE);
+  } else {
+    missHits = missHits + 1;
+    loseLife();
+  }
+
+  highestCombo = max(highestCombo, combo);
+  ball.visible = false;
+
+  if (lives <= 0) {
+    goToContinue();
+  }
+}
+
+function loseLife() {
+  lives = lives - 1;
+  combo = 0;
+}
+
+function addHitEffect(x, y, effectColor) {
+  hitEffects.push({ x: x, y: y, frame: gameFrame, color: effectColor });
+}
+
+function finishLevel() {
+  coinsEarned = floor(score / 1000);
+  coins = coins + coinsEarned;
+
+  if (score > LEVELS[chosenLvl].highscore) {
+    LEVELS[chosenLvl].highscore = score;
+  }
+
+  stopSong();
+  currentScreen = "results";
+}
+
+function pauseGame() {
+  pauseSong();
+  currentScreen = "pause";
+}
+
+function resumeGame() {
+  resumeSong();
+  currentScreen = "game";
+}
+
+function goToContinue() {
+  pauseSong();
+  continueTimer = CONTINUE_TIME;
+  currentScreen = "continue";
+}
+
+function updateContinue() {
+  continueTimer = continueTimer - 1;
+
+  if (continueTimer <= 0) {
+    stopSong();
+    currentScreen = "results";
+  }
+}
+
+
+// ===== MUSIC =====
+function playSong() {
+  stopSong();
+  songStartTime = getAudioContext().currentTime;
+  songs[chosenLvl].play(0, 1, volumes[0] * volumes[1], 0);
+}
+
+function stopSong() {
+  for (let i = 0; i < songs.length; i++) {
+    songs[i].stop();
+  }
+}
+
+function pauseSong() {
+  songs[chosenLvl].stop();
+}
+
+function resumeSong() {
+  const seconds = gameFrame / 60;
+  songStartTime = getAudioContext().currentTime - seconds;
+  songs[chosenLvl].play(0, 1, volumes[0] * volumes[1], seconds);
+}
+
+
+// ===== SCREENS =====
+function drawMenu() {
+  background(COLOR_BACKGROUND);
+  drawCoins("Coins: " + coins, 24);
+
+  //CIRCLES
+  noFill();
+  stroke(COLOR_BLUE);
+  strokeWeight(2);
+  circle(140, 100, 520);
+
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  circle(175, 135, 450);
+
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  circle(218, 178, 364);
+
+  //CIRCLE TEXT
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(88);
+  text("SOSU", 400, 296);
+
+  fill(COLOR_SUBTEXT);
+  textSize(26);
+  text("GAME", 400, 404);
+
+  //MENU BUTTONS
+  drawMenuButton("START", "Choose a level", MENU_START);
+  drawMenuButton("OPTIONS", "Sound and controls", MENU_OPTIONS);
+  drawMenuButton("STORE", "Coming soon", MENU_STORE);
+  drawMenuButton("BUY COINS", "Coming soon", MENU_COINS);
+}
+
+function drawLevelSelect() {
+  const level = LEVELS[chosenLvl];
+
+  background(COLOR_BACKGROUND);
+  drawTopBar("CHOOSE A LEVEL");
+  drawCoins("Coins: " + coins, 20);
+
+  //CIRCLES
+  noFill();
+  stroke(COLOR_BLUE);
+  strokeWeight(2);
+  circle(140, 130, 440);
+
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  circle(170, 160, 380);
+
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  circle(207, 197, 306);
+
+  //CIRCLE TEXT
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_SUBTEXT);
+  textSize(19);
+  text(level.name.toUpperCase(), 360, 238);
+
+  fill(COLOR_TEXT);
+  textSize(72);
+  text("PLAY", 360, 284);
+
+  textStyle(NORMAL);
+  textSize(22);
+  text(level.difficulty, 360, 378);
+
+  //DIFFICULTY DOTS
+  stroke(COLOR_BORDER);
+  strokeWeight(1.5);
+  for (let i = 0; i < 5; i++) {
+    if (i < level.stars) {
+      fill(COLOR_PINK);
+    } else {
+      fill(COLOR_CARD);
+    }
+    circle(305 + i * 23, 418, 17);
+  }
+
+  noStroke();
+  fill(COLOR_SUBTEXT);
+  textSize(15);
+  text("click or press ENTER", 360, 452);
+
+  //LEVEL CARDS
+  for (let i = 0; i < LEVELS.length; i++) {
+    drawLevelCard(LEVELS[i], 165 + i * 130, i === chosenLvl);
+  }
+
+  //BOTTOM BAR
+  drawBottomBar();
+  drawButton("< BACK", BACK_BUTTON, true);
+  drawButton("PLAY", PLAY_BUTTON, true);
+
+  //LEVEL STATS
+  const stats = [
+    ["HIGHSCORE", level.highscore],
+    ["NOTES", level.balls.length],
+    ["LENGTH", formatTime(level.length)]
+  ];
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  for (let i = 0; i < stats.length; i++) {
+    fill(COLOR_SUBTEXT);
+    textSize(13);
+    text(stats[i][0], 320 + i * 200, 640);
+
+    fill(COLOR_TEXT);
+    textSize(28);
+    text(stats[i][1], 320 + i * 200, 660);
+  }
+}
+
+function drawGame() {
+  background(COLOR_BACKGROUND);
+
+  //HUD BAR
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(0, 0, 1280, 80);
+
+  //SCORE
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_SUBTEXT);
+  textSize(13);
+  text("SCORE", 40, 12);
+
+  fill(COLOR_TEXT);
+  textSize(32);
+  text(score, 40, 30);
+
+  //PAUSE BUTTON
+  drawButton("II  PAUSE", PAUSE_BUTTON, true);
+
+  //LIVES
+  noStroke();
+  textAlign(LEFT, TOP);
+  fill(COLOR_SUBTEXT);
+  textSize(13);
+  text("LIVES", 960, 14);
+
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(960, 38, 280, 18, 9);
+
+  noStroke();
+  fill(COLOR_PINK);
+  rect(960, 38, max(0, 280 * (lives / maxLives)), 18, 9);
+
+  //COMBO
+  fill(COLOR_TEXT);
+  textSize(52);
+  text("x" + combo, 40, 630);
+
+  fill(COLOR_SUBTEXT);
+  textSize(15);
+  text("COMBO", 144, 660);
+
+  //ACCURACY
+  textAlign(RIGHT, TOP);
+  fill(COLOR_TEXT);
+  textSize(34);
+  text(round(getAccuracy()) + "%", 1240, 640);
+
+  ellipseMode(CENTER);
+
+  //BALLS
+  for (let i = balls.length - 1; i >= 0; i--) {
+    if (balls[i].visible && gameFrame >= balls[i].start) {
+      drawBall(balls[i]);
+    }
+  }
+
+  //HIT EFFECTS
+  for (let i = 0; i < hitEffects.length; i++) {
+    const effect = hitEffects[i];
+    const age = gameFrame - effect.frame;
+
+    if (age <= 20) {
+      noFill();
+      stroke(effect.color);
+      strokeWeight(3);
+      circle(effect.x, effect.y, 110 + age * 4);
+    }
+  }
+
+  ellipseMode(CORNER);
+}
+
+function drawBall(ball) {
+  const ringSize = map(gameFrame - ball.start, 0, HIT_FRAME, 200, 110, true);
+
+  //BALL
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  circle(ball.x, ball.y, 110);
+
+  //NUMBER
+  noStroke();
+  fill(COLOR_TEXT);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  textSize(32);
+  text(ball.number, ball.x, ball.y);
+
+  //RING
+  noFill();
+  stroke(COLOR_BLUE);
+  strokeWeight(2);
+  circle(ball.x, ball.y, ringSize);
+}
+
+function drawPause() {
+  drawDarkOverlay();
+
+  //PAUSE CARD
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  rect(440, 100, 400, 520, 24);
+
+  //PAUSE ICON
+  noStroke();
+  fill(COLOR_PINK);
+  rect(610, 136, 18, 54, 5);
+  rect(652, 136, 18, 54, 5);
+
+  //TITLE
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(42);
+  text("PAUSE", 640, 206);
+
+  //BUTTONS
+  drawButton("CONTINUE", PAUSE_CONTINUE, true);
+  drawButton("OPTIONS", PAUSE_OPTIONS, true);
+  drawButton("QUIT", PAUSE_QUIT, true);
+
+  //HINT
+  textAlign(CENTER, TOP);
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(15);
+  text("press esc to continue", 640, 568);
+}
+
+function drawContinue() {
+  drawDarkOverlay();
+  drawCoins("Coins: " + coins, 24);
+
+  //CIRCLES
+  noFill();
+  stroke(COLOR_BLUE);
+  strokeWeight(2);
+  circle(460, 90, 360);
+
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  circle(490, 120, 300);
+
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  circle(522, 152, 236);
+
+  //COUNTDOWN
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(86);
+  text(ceil(continueTimer / 60), 640, 216);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(17);
+  text("seconds", 640, 322);
+
+  //TITLE
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(38);
+  text("OUT OF LIVES!", 640, 474);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(19);
+  text("Continue for " + CONTINUE_COST + " coins?", 640, 528);
+
+  //BUTTONS
+  drawButton("YES  •  " + CONTINUE_COST + " COINS", CONTINUE_YES, coins >= CONTINUE_COST);
+  drawButton("NO", CONTINUE_NO, true);
+}
+
+function drawResults() {
+  const level = LEVELS[chosenLvl];
+  const accuracy = getAccuracy();
+
+  background(COLOR_BACKGROUND);
+  drawTopBar("RESULTS");
+  drawCoins("+" + coinsEarned + " coins", 20);
+
+  //CIRCLES
+  noFill();
+  stroke(COLOR_BLUE);
+  strokeWeight(2);
+  circle(120, 150, 400);
+
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  circle(152, 182, 336);
+
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  circle(188, 218, 264);
+
+  //RANK
+  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(COLOR_SUBTEXT);
+  textSize(16);
+  text("RANK", 320, 248);
+
+  fill(COLOR_YELLOW);
+  textSize(140);
+  text(getRank(accuracy), 320, 264);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(16);
+  text(level.name + "  •  " + level.difficulty, 320, 420);
+
+  //SCORE CARD
+  fill(COLOR_CARD);
+  stroke(COLOR_PINK);
+  strokeWeight(4);
+  rect(600, 110, 640, 124, 18);
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_SUBTEXT);
+  textSize(14);
+  text("SCORE", 630, 132);
+
+  fill(COLOR_TEXT);
+  textSize(50);
+  text(score, 630, 154);
+
+  //STATS CARD
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(600, 254, 640, 108, 18);
+
+  const stats = [
+    ["ACCURACY", round(accuracy) + "%"],
+    ["HIGHEST COMBO", "x" + highestCombo],
+    ["COINS EARNED", "+" + coinsEarned]
+  ];
+
+  noStroke();
+  for (let i = 0; i < stats.length; i++) {
+    fill(COLOR_SUBTEXT);
+    textSize(13);
+    text(stats[i][0], 630 + i * 205, 276);
+
+    fill(COLOR_TEXT);
+    textSize(32);
+    text(stats[i][1], 630 + i * 205, 298);
+  }
+
+  //HIT TILES
+  const hits = [
+    ["PERFECT", perfectHits, COLOR_PINK],
+    ["GOOD", goodHits, COLOR_BLUE],
+    ["MISS", missHits, COLOR_CARD]
+  ];
+
+  for (let i = 0; i < hits.length; i++) {
+    const tileX = 600 + i * 220;
+
+    fill(COLOR_CARD);
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+    rect(tileX, 382, 200, 208, 18);
+
+    fill(hits[i][2]);
+    circle(tileX + 85, 409, 30);
+
+    noStroke();
+    textAlign(CENTER, TOP);
+    fill(COLOR_TEXT);
+    textSize(40);
+    text(hits[i][1], tileX + 100, 458);
+
+    fill(COLOR_SUBTEXT);
+    textSize(15);
+    text(hits[i][0], tileX + 100, 516);
+  }
+
+  //BOTTOM BAR
+  drawBottomBar();
+  drawButton("RETRY", RESULTS_RETRY, true);
+  drawButton("MENU", RESULTS_MENU, true);
+  drawButton("NEXT LEVEL", RESULTS_NEXT, chosenLvl < LEVELS.length - 1);
+}
+
+function drawOptions() {
+  background(COLOR_BACKGROUND);
+  drawTopBar("OPTIONS");
+
+  //TAB LIST
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(40, 110, 300, 480, 18);
+
+  const tabNames = ["SOUND", "CONTROLS", "HOW TO PLAY"];
+
+  for (let i = 0; i < tabNames.length; i++) {
+    const tabY = 130 + i * 70;
+
+    //SELECTED TAB = pink, HOVERED TAB = purple
+    noFill();
+    strokeWeight(4);
+    if (i === optionsTab) {
+      stroke(COLOR_PINK);
+      rect(56, tabY, 268, 58, 12);
+    } else if (isHovered(56, tabY, 268, 58)) {
+      stroke(COLOR_BORDER);
+      rect(56, tabY, 268, 58, 12);
+    }
+
+    noStroke();
+    textAlign(LEFT, TOP);
+    textStyle(BOLD);
+    fill(COLOR_TEXT);
+    textSize(18);
+    text(tabNames[i], 82, tabY + 20);
+  }
+
+  //SELECTED TAB
+  if (optionsTab === 0) {
+    drawSoundTab();
+  } else if (optionsTab === 1) {
+    drawControlsTab();
+  } else {
+    drawHowToPlayTab();
+  }
+
+  //BOTTOM BAR
+  drawBottomBar();
+  drawButton("< BACK", BACK_BUTTON, true);
+  drawButton("SAVE", SAVE_BUTTON, true);
+}
+
+function drawSoundTab() {
+  drawTabPanel("SOUND");
+
+  for (let i = 0; i < volumes.length; i++) {
+    const sliderY = 196 + i * 64;
+    const knobX = 560 + 540 * tempVolumes[i];
+
+    //LABEL
+    noStroke();
+    textStyle(NORMAL);
+    fill(COLOR_TEXT);
+    textSize(18);
+    text(VOLUME_LABELS[i], 404, sliderY);
+
+    //TRACK
+    fill(COLOR_PANEL);
+    rect(560, sliderY + 8, 540, 10, 5);
+
+    //FILLED PART
+    fill(COLOR_PINK);
+    rect(560, sliderY + 8, 540 * tempVolumes[i], 10, 5);
+
+    //KNOB
+    fill(COLOR_CARD);
+    stroke(COLOR_PINK);
+    strokeWeight(3);
+    circle(knobX - 15, sliderY - 2, 30);
+
+    //PERCENTAGE
+    noStroke();
+    textStyle(BOLD);
+    fill(COLOR_TEXT);
+    text(round(tempVolumes[i] * 100) + "%", 1130, sliderY);
+  }
+}
+
+function drawControlsTab() {
+  drawTabPanel("CONTROLS");
+
+  const keys = [
+    ["Mouse / Z / X", "Hit the circle under your mouse"],
+    ["ESC", "Pause the game"],
+    ["ENTER", "Start a level"]
+  ];
+
+  for (let i = 0; i < keys.length; i++) {
+    const keyY = 190 + i * 60;
+
+    //KEY BOX
+    fill(COLOR_CARD);
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+    rect(404, keyY, 180, 44, 10);
+
+    //KEY TEXT
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textStyle(BOLD);
+    fill(COLOR_TEXT);
+    textSize(16);
+    text(keys[i][0], 494, keyY + 22);
+
+    //ACTION TEXT
+    textAlign(LEFT, TOP);
+    textStyle(NORMAL);
+    textSize(18);
+    text(keys[i][1], 610, keyY + 12);
+  }
+}
+
+function drawHowToPlayTab() {
+  drawTabPanel("HOW TO PLAY");
+
+  const steps = [
+    ["Click the circle when the ring hits it", "Perfect timing gives the most points"],
+    ["Aim with the mouse, click or press Z/X", "Both work, use whatever you like"],
+    ["Don't miss too often", "Every miss costs a piece of your life bar"]
+  ];
+
+  for (let i = 0; i < steps.length; i++) {
+    const stepY = 186 + i * 106;
+
+    //STEP CARD
+    fill(COLOR_CARD);
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+    rect(404, stepY, 802, 92, 14);
+
+    //ICON BOX
+    fill(COLOR_PANEL);
+    rect(420, stepY + 12, 68, 68, 10);
+
+    //ICON
+    if (i === 0) {
+      noFill();
+      stroke(COLOR_BLUE);
+      strokeWeight(2);
+      circle(430, stepY + 22, 48);
+
+      fill(COLOR_CARD);
+      stroke(COLOR_PINK);
+      strokeWeight(3);
+      circle(439, stepY + 31, 30);
+    } else if (i === 1) {
+      fill(COLOR_CARD);
+      stroke(COLOR_BORDER);
+      strokeWeight(2);
+      rect(428, stepY + 34, 52, 24, 12);
+
+      stroke(COLOR_PINK);
+      strokeWeight(3);
+      circle(428, stepY + 34, 24);
+    } else {
+      fill(COLOR_CARD);
+      stroke(COLOR_BORDER);
+      strokeWeight(2);
+      rect(430, stepY + 39, 48, 14, 7);
+
+      noStroke();
+      fill(COLOR_PINK);
+      rect(430, stepY + 39, 18, 14, 7);
+    }
+
+    //STEP TEXT
+    noStroke();
+    textStyle(BOLD);
+    fill(COLOR_TEXT);
+    textSize(20);
+    text((i + 1) + ".", 512, stepY + 20);
+
+    textSize(18);
+    text(steps[i][0], 545, stepY + 20);
+
+    textStyle(NORMAL);
+    fill(COLOR_SUBTEXT);
+    textSize(14);
+    text(steps[i][1], 512, stepY + 54);
+  }
+
+  textSize(15);
+  text("Perfect = 300  •  Good = 100  •  Miss = 0  •  Perfect gives back a bit of life", 404, 520);
+}
+
+
+// ===== REUSABLE PARTS =====
+function drawButton(label, button, enabled) {
+  //BORDER
+  fill(COLOR_CARD);
+  if (enabled && isOver(button)) {
+    stroke(COLOR_PINK);
+    strokeWeight(4);
+  } else {
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+  }
+  rect(button.x, button.y, button.w, button.h, 12);
+
+  //TEXT
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  textSize(20);
+  if (enabled) {
+    fill(COLOR_TEXT);
+  } else {
+    fill(COLOR_SUBTEXT);
+  }
+  text(label, button.x + button.w / 2, button.y + button.h / 2);
+}
+
+function drawMenuButton(title, subtitle, button) {
+  let x = button.x;
+  if (isOver(button)) {
+    x = button.x - 20;
+    stroke(COLOR_PINK);
+    strokeWeight(4);
+  } else {
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+  }
+
+  //BUTTON
+  fill(COLOR_CARD);
+  rect(x, button.y, button.w + 60, button.h, 18);
+
+  //ICON
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  circle(x + 35, button.y + 25, 34);
+
+  //TEXT
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(22);
+  text(title, x + 96, button.y + 16);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(15);
+  text(subtitle, x + 96, button.y + 50);
+}
+
+function drawLevelCard(level, y, selected) {
+  let x = 780;
+  if (isHovered(780, y, 500, 110)) {
+    x = 760;
+  }
+
+  //CARD
+  fill(COLOR_CARD);
+  if (selected) {
+    stroke(COLOR_PINK);
+    strokeWeight(4);
+  } else {
+    stroke(COLOR_BORDER);
+    strokeWeight(2);
+  }
+  rect(x, y, 560, 110, 18);
+
+  //THUMBNAIL
+  fill(COLOR_PANEL);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(x + 16, y + 16, 78, 78, 12);
+
+  //TEXT
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(22);
+  text(level.name, x + 118, y + 16);
+
+  textStyle(NORMAL);
+  fill(COLOR_SUBTEXT);
+  textSize(15);
+  text(level.song, x + 118, y + 46);
+
+  //DIFFICULTY DOTS
+  stroke(COLOR_BORDER);
+  strokeWeight(1.5);
+  for (let i = 0; i < 5; i++) {
+    if (i < level.stars) {
+      fill(COLOR_PINK);
+    } else {
+      fill(COLOR_CARD);
+    }
+    circle(x + 118 + i * 19, y + 76, 13);
+  }
+
+  //HIGHSCORE
+  if (level.highscore > 0) {
+    noStroke();
+    fill(COLOR_SUBTEXT);
+    text("highscore: " + level.highscore, x + 230, y + 76);
+  }
+}
+
+function drawTopBar(title) {
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(0, 0, 1280, 80);
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(30);
+  text(title, 40, 24);
+}
+
+function drawBottomBar() {
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(0, 620, 1280, 100);
+}
+
+function drawTabPanel(title) {
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(370, 110, 870, 480, 18);
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(22);
+  text(title, 404, 136);
+}
+
+function drawDarkOverlay() {
+  noStroke();
+  fill(0, 0, 0, 150);
+  rect(0, 0, 1280, 720);
+}
+
+function drawCoins(label, y) {
+  fill(COLOR_CARD);
+  stroke(COLOR_BORDER);
+  strokeWeight(2);
+  rect(1064, y, 176, 44, 22);
+
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  fill(COLOR_TEXT);
+  textSize(17);
+  text(label, 1152, y + 22);
+}
+
+
+// ===== HELPERS =====
+function isHovered(x, y, w, h) {
+  return mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h;
+}
+
+function isOver(button) {
+  return isHovered(button.x, button.y, button.w, button.h);
+}
+
+function formatTime(seconds) {
+  const minutes = floor(seconds / 60);
+  const rest = floor(seconds % 60);
+  return minutes + ":" + nf(rest, 2);
+}
+
+function getAccuracy() {
+  const totalHits = perfectHits + goodHits + missHits;
+  if (totalHits === 0) {
+    return 0;
+  }
+  return (perfectHits + goodHits * 0.5) / totalHits * 100;
+}
+
+function getRank(accuracy) {
+  if (accuracy >= 95) {
+    return "S";
+  } else if (accuracy >= 90) {
+    return "A";
+  } else if (accuracy >= 80) {
+    return "B";
+  } else if (accuracy >= 70) {
+    return "C";
+  } else {
+    return "D";
+  }
+}
+
+
+// ===== LEVELS =====
 const LEVELS = [
   {
-    name: "Level 1", song: "Duvet – bôa", difficulty: "Easy", stars: 1, highscore: 0, length: 211, file: "songs/Bôa - Duvet.mp3",
+    name: "Level 1",
+    song: "Duvet – bôa",
+    difficulty: "Easy",
+    stars: 1,
+    highscore: 0,
+    length: 211,
+    file: "songs/Bôa - Duvet.mp3",
     balls: [
       { x: 551, y: 537, start: 335 },
       { x: 441, y: 384, start: 508 },
@@ -160,7 +1425,13 @@ const LEVELS = [
     ]
   },
   {
-    name: "Level 2", song: "wheredoistart – Ken Carson", difficulty: "Normal", stars: 3, highscore: 0, length: 164, file: "songs/Ken Carson - wheredoistart.mp3",
+    name: "Level 2",
+    song: "wheredoistart – Ken Carson",
+    difficulty: "Normal",
+    stars: 3,
+    highscore: 0,
+    length: 164,
+    file: "songs/Ken Carson - wheredoistart.mp3",
     balls: [
       { x: 336, y: 454, start: 40 },
       { x: 607, y: 314, start: 133 },
@@ -394,7 +1665,13 @@ const LEVELS = [
     ]
   },
   {
-    name: "Level 3", song: "Choppa Won't Miss – PlayboiCarti", difficulty: "Hard", stars: 5, highscore: 0, length: 218, file: "songs/PlayboiCarti - Choppa Won't Miss.mp3",
+    name: "Level 3",
+    song: "Choppa Won't Miss – PlayboiCarti",
+    difficulty: "Hard",
+    stars: 5,
+    highscore: 0,
+    length: 218,
+    file: "songs/PlayboiCarti - Choppa Won't Miss.mp3",
     balls: [
       { x: 875, y: 378, start: 23 },
       { x: 1027, y: 559, start: 67 },
@@ -774,1510 +2051,3 @@ const LEVELS = [
     ]
   }
 ];
-let balls = [];
-let hitEffects = [];
-
-
-//VARIABLES
-let currentScreen = "menu";
-let coins = 0;
-let chosenLvl = 0;
-let songs = [];
-let score = 0;
-let highestCombo = 0;
-let perfectHits = 0;
-let goodHits = 0;
-let missHits = 0;
-let coinsEarned = 0;
-let previousScreen;
-let optionsTab = 0;
-let draggingSlider = -1;
-let gameFrame = 0;
-let songStartTime = 0;
-const HIT_FRAME = 83;
-const PERFECT_WINDOW = 6;
-const GOOD_WINDOW = 14;
-
-const VOLUME_LABELS = ["Master", "Music", "Effects"];
-const volumes = [1, 1, 1];
-const tempVolumes = [1, 1, 1];
-const CONTINUE_TIME = 600;
-let MAX_LIVES = 5;
-let lives = MAX_LIVES;
-let combo = 0;
-let continueTimer = CONTINUE_TIME;
-
-
-
-//P5 FUNCTIONS
-function preload() {
-  for (let i = 0; i < LEVELS.length; i++) {
-    if (LEVELS[i].file !== "") {
-      songs[i] = loadSound(LEVELS[i].file);
-    }
-  }
-}
-
-function setup() {
-  createCanvas(1280, 720);
-
-  for (let i = 0; i < LEVELS.length; i++) {
-    if (songs[i]) {
-      LEVELS[i].length = songs[i].duration();
-    }
-  }
-}
-
-function draw() {
-  if (currentScreen === "menu") {
-    drawMenu();
-  } else if (currentScreen === "levelSelect") {
-    drawLevelSelect();
-  } else if (currentScreen === "game") {
-    if (songs[chosenLvl]) {
-      gameFrame = (getAudioContext().currentTime - songStartTime) * 60;
-    } else {
-      gameFrame = gameFrame + 1;
-    }
-    drawGame();
-    checkLevelEnd();
-  } else if (currentScreen === "pause") {
-    drawGame();
-    drawPause();
-  } else if (currentScreen === "continue") {
-    continueTimer = continueTimer - 1;
-    if (continueTimer <= 0) {
-      stopSong();
-      currentScreen = "results";
-    }
-    drawGame();
-    drawContinue();
-  } else if (currentScreen === "results") {
-    drawResults();
-  } else if (currentScreen === "options") {
-    drawOptions();
-  }
-  
-}
-
-function mousePressed() {
-  if (currentScreen === "menu") {
-    if (isHovered(780, 214, 500, 84)) {
-      currentScreen = "levelSelect";
-    } else if (isHovered(780, 314, 500, 84)) {
-      previousScreen = currentScreen;
-      copyVolumes(volumes, tempVolumes);
-      currentScreen = "options";
-    } else if (isHovered(780, 414, 500, 84)) {
-      // niks of later store scherm
-    } else if (isHovered(780, 514, 500, 84)) {
-      // niks of later buy coins scherm
-    }
-  }
-
-  else if (currentScreen === "levelSelect") {
-    if (isHovered(40, 642, 190, 56)) {
-      currentScreen = "menu";
-    } else if (isHovered(1050, 642, 190, 56)) {
-      startGame();
-    }
-  }
-
-  else if (currentScreen === "pause") {
-    if (isHovered(490, 310, 300, 64)) {
-      currentScreen = "game";
-      resumeSong();
-    } else if (isHovered(490, 392, 300, 64)) {
-      previousScreen = currentScreen;
-      copyVolumes(volumes, tempVolumes);
-      currentScreen = "options";
-    } else if (isHovered(490, 474, 300, 64)) {
-      stopSong();
-      currentScreen = "menu";
-    }
-  }
-
-  else if (currentScreen === "continue") {
-    if (isHovered(385, 584, 250, 64) && coins >= 50) {
-      coins = coins - 50;
-      lives = MAX_LIVES;
-      resumeSong();
-      currentScreen = "game";
-    } else if (isHovered(645, 584, 250, 64)) {
-      stopSong();
-      currentScreen = "results";
-    }
-  }
-
-  else if (currentScreen === "results") {
-    if (isHovered(40, 642, 220, 56)) {
-      startGame();
-    } else if (isHovered(530, 642, 220, 56)) {
-      currentScreen = "menu";
-    } else if (isHovered(1020, 642, 220, 56)) {
-      if (chosenLvl < LEVELS.length - 1) {
-        chosenLvl = chosenLvl + 1;
-      }
-      startGame();
-    }
-  }
-
-  else if (currentScreen === "options") {
-    if (isHovered(40, 642, 190, 56)) {
-      currentScreen = previousScreen;
-    } else if (isHovered(1050, 642, 190, 56)) {
-      copyVolumes(tempVolumes, volumes);
-    }
-    for (let i = 0; i < 3; i++) {
-      if (isHovered(56, 130 + i * 70, 268, 58)) {
-        optionsTab = i;
-      }
-    }
-    if (optionsTab === 0) {
-      for (let i = 0; i < volumes.length; i++) {
-        if (isHovered(545, 196 + i * 64 - 5, 570, 36)) {
-          draggingSlider = i;
-        }
-      }
-    }
-  }
-
-  else if (currentScreen === "game") {
-    if (isHovered(580, 22, 120, 38)) {
-      pauseSong();
-      currentScreen = "pause";
-      return;
-    }
-
-    let hitBall = false;
-
-    for (let i = 0; i < balls.length; i++) {
-      const ball = balls[i];
-
-      if (ball.visible && gameFrame >= ball.start && dist(mouseX, mouseY, ball.x, ball.y) < 55) {
-        const diff = gameFrame - (ball.start + HIT_FRAME);
-        const offset = abs(diff);
-        if (diff < -GOOD_WINDOW - 10) {
-          hitBall = true;
-          break;
-        }
-        if (offset <= PERFECT_WINDOW) {
-          perfectHits = perfectHits + 1;
-          score = score + 300;
-          combo = combo + 1;
-          lives = min(MAX_LIVES, lives + 0.5);
-          addHitEffect(ball.x, ball.y, COLOR_PINK);
-        } else if (offset <= GOOD_WINDOW) {
-          goodHits = goodHits + 1;
-          score = score + 100;
-          combo = combo + 1;
-          addHitEffect(ball.x, ball.y, COLOR_BLUE);
-        } else {
-          missHits = missHits + 1;
-          lives = lives - 1;
-          combo = 0;
-        }
-        highestCombo = max(highestCombo, combo);
-        ball.visible = false;
-        hitBall = true;
-        break;
-      }
-    }
-
-    //MISCLICK
-    if (!hitBall) {
-      lives = lives - 1;
-      combo = 0;
-      addHitEffect(mouseX, mouseY, COLOR_BORDER);
-    }
-
-    if (lives <= 0) {
-      goToContinue();
-    }
-  }
-}
-
-function keyPressed() {
-  if (keyCode === ESCAPE) {
-    if (currentScreen === "game") {
-      pauseSong();
-      currentScreen = "pause";
-    } else if (currentScreen === "pause") {
-      resumeSong();
-      currentScreen = "game";
-    }
-  }
-}
-
-function mouseReleased() {
-  draggingSlider = -1;
-}
-
-
-//HELPERS
-function isHovered(x, y, w, h) {
-  return mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h;
-}
-
-function formatTime(seconds) {
-  const minutes = floor(seconds / 60);
-  const rest = floor(seconds % 60);
-  return `${minutes}:${nf(rest, 2)}`;
-}
-
-function getAccuracy() {
-  const totalHits = perfectHits + goodHits + missHits;
-  if (totalHits === 0) {
-    return 0;
-  }
-  return (perfectHits + goodHits * 0.5) / totalHits * 100;
-}
-
-function getRank(accuracy) {
-  if (accuracy >= 95) {
-    return "S";
-  } else if (accuracy >= 90) {
-    return "A";
-  } else if (accuracy >= 80) {
-    return "B";
-  } else if (accuracy >= 70) {
-    return "C";
-  } else {
-    return "D";
-  }
-}
-
-function copyVolumes(from, to) {
-  for (let i = 0; i < from.length; i++) {
-    to[i] = from[i];
-  }
-}
-
-function playSong() {
-  stopSong();
-
-  const song = songs[chosenLvl];
-  if (song) {
-    songStartTime = getAudioContext().currentTime;
-    song.play(0, 1, volumes[0] * volumes[1], 0);
-  }
-}
-
-function stopSong() {
-  for (let i = 0; i < songs.length; i++) {
-    if (songs[i]) {
-      songs[i].stop();
-    }
-  }
-}
-
-function pauseSong() {
-  const song = songs[chosenLvl];
-  if (song) {
-    // Bewaar de positie voor het hervatten.
-    gameFrame = (getAudioContext().currentTime - songStartTime) * 60;
-    song.stop();
-  }
-}
-
-function resumeSong() {
-  const song = songs[chosenLvl];
-  if (song) {
-    const seconds = gameFrame / 60;
-    songStartTime = getAudioContext().currentTime - seconds;
-    song.play(0, 1, volumes[0] * volumes[1], seconds);
-  }
-}
-
-function goToContinue() {
-  pauseSong();
-  continueTimer = CONTINUE_TIME;
-  currentScreen = "continue";
-}
-
-function addHitEffect(x, y, effectColor) {
-  hitEffects.push({ x: x, y: y, frame: gameFrame, color: effectColor });
-}
-
-
-//SCREENS
-function drawMenu() {
-  background(COLOR_BACKGROUND);
-  ellipseMode(CORNER);
-
-  //COINS
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(1064, 24, 176, 44, 22);
-
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(17);
-  text(`Coins: ${coins}`, 1152, 36);
-
-  //CIRCLES
-  fill(COLOR_BACKGROUND);
-  stroke(COLOR_BLUE);
-  strokeWeight(2);
-  circle(140, 100, 520);
-
-  fill(COLOR_CARD);
-  stroke(COLOR_PINK);
-  strokeWeight(4);
-  circle(175, 135, 450);
-
-  fill(COLOR_PANEL);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  circle(218, 178, 364);
-
-  //CIRCLE TEXT
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(88);
-  text("SOSU", 400, 296);
-
-  fill(COLOR_SUBTEXT);
-  textSize(26);
-  text("GAME", 400, 404);
-
-  //MENU BUTTONS
-  drawMenuButton("START", "Choose a level", 214);
-  drawMenuButton("OPTIONS", "Sound and controls", 314);
-  drawMenuButton("STORE", "Buy skins", 414);
-  drawMenuButton("BUY COINS", "Get extra coins", 514);
-}
-
-function drawLevelSelect() {
-  background(COLOR_BACKGROUND);
-  ellipseMode(CORNER);
-
-  //NAV
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(0, 0, 1280, 80);
-
-  //NAV TEXT
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(30);
-  text("CHOOSE A LEVEL", 40, 24);
-
-  //COINS
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(1064, 20, 176, 44, 22);
-
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(17);
-  text(`Coins: ${coins}`, 1152, 36);
-
-  //CIRCLES
-  fill(COLOR_BACKGROUND);
-  stroke(COLOR_BLUE);
-  strokeWeight(2);
-  circle(140, 130, 440);
-
-  fill(COLOR_CARD);
-  stroke(COLOR_PINK);
-  strokeWeight(4);
-  circle(170, 160, 380);
-
-  fill(COLOR_PANEL);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  circle(207, 197, 306);
-
-  //CIRCLE TEXT
-  const level = LEVELS[chosenLvl];
-
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_SUBTEXT);
-  textSize(19);
-  text(level.name.toUpperCase(), 360, 238);
-
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(72);
-  text("PLAY", 360, 284);
-
-  textStyle(NORMAL);
-  fill(COLOR_TEXT);
-  textSize(22);
-  text(level.difficulty, 360, 378);
-
-  //DIFFICULTY DOTS
-  stroke(COLOR_BORDER);
-  strokeWeight(1.5);
-  for (let i = 0; i < 5; i++) {
-    if (i < level.stars) {
-      fill(COLOR_PINK);
-    } else {
-      fill(COLOR_CARD);
-    }
-    circle(305 + i * 23, 418, 17);
-  }
-
-  //CIRCLE HINT
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(15);
-  text("click or press ENTER", 360, 452);
-
-  //LEVEL CARDS
-  for (let i = 0; i < LEVELS.length; i++) {
-    const cardY = 165 + i * 130;
-    drawLevelCard(LEVELS[i], cardY);
-
-    if (isHovered(780, cardY, 500, 110)) {
-      chosenLvl = i;
-    }
-  }
-
-  //BOTTOM BAR
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(0, 620, 1280, 100);
-
-  //BACK BUTTON
-  fill(COLOR_CARD);
-  if (isHovered(40, 642, 190, 56)) {
-    stroke(COLOR_PINK);
-  } else {
-    stroke(COLOR_BORDER);
-  }
-  strokeWeight(2);
-  rect(40, 642, 190, 56, 12);
-
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textStyle(NORMAL);
-  fill(COLOR_TEXT);
-  textSize(20);
-  text("< BACK", 135, 670);
-
-  //LEVEL STATS
-  const stats = [
-    ["HIGHSCORE", level.highscore],
-    ["NOTES", level.balls.length],
-    ["LENGTH", formatTime(level.length)]
-  ];
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  for (let i = 0; i < stats.length; i++) {
-    const statX = 320 + i * 200;
-
-    textStyle(BOLD);
-    fill(COLOR_SUBTEXT);
-    textSize(13);
-    text(stats[i][0], statX, 640);
-
-    fill(COLOR_TEXT);
-    textSize(28);
-    text(stats[i][1], statX, 660);
-  }
-
-  //PLAY BUTTON
-  fill(COLOR_CARD);
-  if (isHovered(1050, 642, 190, 56)) {
-    stroke(COLOR_PINK);
-    strokeWeight(4);
-  } else {
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-  }
-  rect(1050, 642, 190, 56, 12);
-
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(20);
-  text("PLAY", 1145, 670);
-}
-
-function drawGame() {
-  background(COLOR_BACKGROUND);
-  ellipseMode(CORNER);
-
-  //HUD BAR
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(0, 0, 1280, 80);
-
-  //SCORE
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_SUBTEXT);
-  textSize(13);
-  text("SCORE", 40, 12);
-
-  fill(COLOR_TEXT);
-  textSize(32);
-  text(score, 40, 30);
-
-  //PAUSE BUTTON
-  fill(COLOR_CARD);
-  if (isHovered(580, 22, 120, 38)) {
-    stroke(COLOR_PINK);
-  } else {
-    stroke(COLOR_BORDER);
-  }
-  strokeWeight(2);
-  rect(580, 22, 120, 38, 19);
-
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(16);
-  text("II  PAUSE", 640, 41);
-
-  //LIVES
-  textAlign(LEFT, TOP);
-  fill(COLOR_SUBTEXT);
-  textSize(13);
-  text("LIVES", 960, 14);
-
-  fill(COLOR_PANEL);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(960, 38, 280, 18, 9);
-
-  noStroke();
-  fill(COLOR_PINK);
-  rect(960, 38, max(0, 280 * (lives / MAX_LIVES)), 18, 9);
-
-  //COMBO
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(52);
-  text(`x${combo}`, 40, 630);
-
-  fill(COLOR_SUBTEXT);
-  textSize(15);
-  text("COMBO", 144, 660);
-
-  //ACCURACY
-  textAlign(RIGHT, TOP);
-  fill(COLOR_TEXT);
-  textSize(34);
-  text(`${round(getAccuracy())}%`, 1240, 640);
-
-
-  //BALLS
-  for (let i = balls.length - 1; i >= 0; i--) {
-    drawObject(balls[i]);
-  }
-
-  //HIT EFFECTS
-  push();
-  ellipseMode(CENTER);
-  for (let i = hitEffects.length - 1; i >= 0; i--) {
-    const effect = hitEffects[i];
-    const age = gameFrame - effect.frame;
-
-    if (age > 20) {
-      hitEffects.splice(i, 1);
-    } else {
-      const effectColor = color(effect.color);
-      effectColor.setAlpha(255 * (1 - age / 20));
-
-      noFill();
-      stroke(effectColor);
-      strokeWeight(6 - age / 4);
-      circle(effect.x, effect.y, 110 + age * 4);
-    }
-  }
-  pop();
-}
-
-function drawPause() {
-  //DARK OVERLAY
-  noStroke();
-  fill(0, 0, 0, 150);
-  rect(0, 0, 1280, 720);
-
-  //PAUSE CARD
-  fill(COLOR_CARD);
-  stroke(COLOR_PINK);
-  strokeWeight(4);
-  rect(440, 100, 400, 520, 24);
-
-  //PAUSE ICON
-  noStroke();
-  fill(COLOR_PINK);
-  rect(610, 136, 18, 54, 5);
-  rect(652, 136, 18, 54, 5);
-
-  //TITLE
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(42);
-  text("PAUSE", 640, 206);
-
-  //BUTTONS
-  const buttons = ["CONTINUE", "OPTIONS", "QUIT"];
-  for (let i = 0; i < buttons.length; i++) {
-    const buttonY = 310 + i * 82;
-
-    fill(COLOR_CARD);
-    if (isHovered(490, buttonY, 300, 64)) {
-      stroke(COLOR_PINK);
-    } else {
-      stroke(COLOR_BORDER);
-    }
-    strokeWeight(2);
-    rect(490, buttonY, 300, 64, 12);
-
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textStyle(BOLD);
-    fill(COLOR_TEXT);
-    textSize(20);
-    text(buttons[i], 640, buttonY + 32);
-  }
-
-  //HINT
-  textAlign(CENTER, TOP);
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(15);
-  text("press esc to continue", 640, 568);
-}
-
-function drawContinue() {
-  ellipseMode(CORNER);
-
-  //DARK OVERLAY
-  noStroke();
-  fill(0, 0, 0, 150);
-  rect(0, 0, 1280, 720);
-
-  //COINS
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(1064, 24, 176, 44, 22);
-
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(17);
-  text(`Coins: ${coins}`, 1152, 36);
-
-  //CIRCLES
-  noFill();
-  stroke(COLOR_BLUE);
-  strokeWeight(2);
-  circle(460, 90, 360);
-
-  fill(COLOR_CARD);
-  stroke(COLOR_PINK);
-  strokeWeight(4);
-  circle(490, 120, 300);
-
-  fill(COLOR_PANEL);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  circle(522, 152, 236);
-
-  //COUNTDOWN
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(86);
-  text(ceil(continueTimer / 60), 640, 216);
-
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(17);
-  text("seconds", 640, 322);
-
-  //TITLE
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(38);
-  text("OUT OF LIVES!", 640, 474);
-
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(19);
-  text("Continue for 50 coins?", 640, 528);
-
-  //YES BUTTON
-  fill(COLOR_CARD);
-  if (isHovered(385, 584, 250, 64)) {
-    stroke(COLOR_PINK);
-    strokeWeight(4);
-  } else {
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-  }
-  rect(385, 584, 250, 64, 12);
-
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(20);
-  text("YES  •  50 COINS", 510, 616);
-
-  //NO BUTTON
-  fill(COLOR_CARD);
-  if (isHovered(645, 584, 250, 64)) {
-    stroke(COLOR_PINK);
-  } else {
-    stroke(COLOR_BORDER);
-  }
-  strokeWeight(2);
-  rect(645, 584, 250, 64, 12);
-
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(20);
-  text("NO", 770, 616);
-}
-
-function drawResults() {
-  background(COLOR_BACKGROUND);
-  ellipseMode(CORNER);
-
-  const level = LEVELS[chosenLvl];
-  const accuracy = getAccuracy();
-
-  //NAV
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(0, 0, 1280, 80);
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(30);
-  text("RESULTS", 40, 24);
-
-  //COINS EARNED
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(1064, 20, 176, 44, 22);
-
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(17);
-  text(`+${coinsEarned} coins`, 1152, 32);
-
-  //CIRCLES
-  noFill();
-  stroke(COLOR_BLUE);
-  strokeWeight(2);
-  circle(120, 150, 400);
-
-  fill(COLOR_CARD);
-  stroke(COLOR_PINK);
-  strokeWeight(4);
-  circle(152, 182, 336);
-
-  fill(COLOR_PANEL);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  circle(188, 218, 264);
-
-  //RANK
-  noStroke();
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
-  fill(COLOR_SUBTEXT);
-  textSize(16);
-  text("RANK", 320, 248);
-
-  fill(COLOR_YELLOW);
-  textSize(140);
-  text(getRank(accuracy), 320, 264);
-
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(16);
-  text(`${level.name}  •  ${level.difficulty}`, 320, 420);
-
-  //SCORE CARD
-  fill(COLOR_CARD);
-  stroke(COLOR_PINK);
-  strokeWeight(4);
-  rect(600, 110, 640, 124, 18);
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_SUBTEXT);
-  textSize(14);
-  text("SCORE", 630, 132);
-
-  fill(COLOR_TEXT);
-  textSize(50);
-  text(score, 630, 154);
-
-  //STATS CARD
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(600, 254, 640, 108, 18);
-
-  const stats = [
-    ["ACCURACY", `${round(accuracy)}%`],
-    ["HIGHEST COMBO", `x${highestCombo}`],
-    ["COINS EARNED", `+${coinsEarned}`]
-  ];
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  for (let i = 0; i < stats.length; i++) {
-    const statX = 630 + i * 205;
-
-    textStyle(BOLD);
-    fill(COLOR_SUBTEXT);
-    textSize(13);
-    text(stats[i][0], statX, 276);
-
-    fill(COLOR_TEXT);
-    textSize(32);
-    text(stats[i][1], statX, 298);
-  }
-
-  //HIT TILES
-  const hits = [
-    ["PERFECT", perfectHits, COLOR_PINK],
-    ["GOOD", goodHits, COLOR_BORDER],
-    ["MISS", missHits, COLOR_CARD]
-  ];
-
-  for (let i = 0; i < hits.length; i++) {
-    const tileX = 600 + i * 220;
-
-    fill(COLOR_CARD);
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-    rect(tileX, 382, 200, 208, 18);
-
-    fill(hits[i][2]);
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-    circle(tileX + 85, 409, 30);
-
-    noStroke();
-    textAlign(CENTER, TOP);
-    textStyle(BOLD);
-    fill(COLOR_TEXT);
-    textSize(40);
-    text(hits[i][1], tileX + 100, 458);
-
-    fill(COLOR_SUBTEXT);
-    textSize(15);
-    text(hits[i][0], tileX + 100, 516);
-  }
-
-  //BOTTOM BAR
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(0, 620, 1280, 100);
-
-  //BUTTONS
-  const buttons = [
-    ["RETRY", 40],
-    ["MENU", 530],
-    ["NEXT LEVEL", 1020]
-  ];
-
-  for (let i = 0; i < buttons.length; i++) {
-    const buttonX = buttons[i][1];
-
-    fill(COLOR_CARD);
-    if (isHovered(buttonX, 642, 220, 56)) {
-      stroke(COLOR_PINK);
-      strokeWeight(4);
-    } else {
-      stroke(COLOR_BORDER);
-      strokeWeight(2);
-    }
-    rect(buttonX, 642, 220, 56, 12);
-
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textStyle(BOLD);
-    fill(COLOR_TEXT);
-    textSize(20);
-    text(buttons[i][0], buttonX + 110, 670);
-  }
-}
-
-function drawOptions() {
-  background(COLOR_BACKGROUND);
-  ellipseMode(CORNER);
-
-  //NAV
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(0, 0, 1280, 80);
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(30);
-  text("OPTIONS", 40, 28);
-
-  //OPTIONS
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(40, 110, 300, 480, 18);
-
-  const option = ["SOUND", "CONTROLS", "HOW TO PLAY"];
-
-  for(let i = 0; i < option.length; i++){
-    const statY = 130 + i * 70;
-
-    
-   if (i === optionsTab || isHovered(56, statY, 268, 58)) {
-      noFill();
-      stroke(COLOR_BORDER);
-      strokeWeight(4);
-      rect(56, statY, 268, 58, 12);
-    }
-    noStroke();
-    textAlign(LEFT, TOP);
-    textStyle(BOLD);
-    fill(COLOR_TEXT);
-    textSize(18);
-    text(option[i], 82, statY + 20);
-  }
-
-  //SELECTED TAB
-  const tabs = [drawSoundTab, drawControlsTab, drawHowToPlayTab];
-  tabs[optionsTab]();
-
-  //BOTTOM BAR
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(0, 620, 1280, 100);
-
-  //BUTTONS
-  fill(COLOR_CARD);
-  if(isHovered(40, 642, 190, 56, 12)){
-    stroke(COLOR_PINK);
-    strokeWeight(4);
-  } else {
-    stroke(COLOR_BORDER);
-  strokeWeight(2);
-  }
-  rect(40, 642, 190, 56, 12)
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(20);
-  text("< BACK", 95, 660);
-
-  fill(COLOR_CARD);
-  if(isHovered(1050, 642, 190, 56, 12)){
-    stroke(COLOR_PINK);
-    strokeWeight(4);
-  } else {
-    stroke(COLOR_BORDER);
-  strokeWeight(2);
-  }
-  rect(1050, 642, 190, 56, 12)
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(20);
-  text("SAVE", 1118, 660);
-  
-}
-
-
-//COMPONENTS
-function drawMenuButton(title, subtitle, y) {
-  const hovered = isHovered(780, y, 500, 84);
-
-  push();
-  if (hovered) {
-    translate(1280, y + 42);
-    scale(1.2);
-    translate(-1280, -(y + 42));
-  }
-
-  //BUTTON
-  fill(COLOR_CARD);
-  if (hovered) {
-    stroke(COLOR_PINK);
-    strokeWeight(4);
-  } else {
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-  }
-  rect(780, y, 560, 84, 18);
-
-  //ICON
-  fill(COLOR_PANEL);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  circle(815, y + 25, 34);
-
-  //TEXT
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(22);
-  text(title, 876, y + 16);
-
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(15);
-  text(subtitle, 876, y + 50);
-
-  pop();
-}
-
-function drawLevelCard(level, y) {
-  const hovered = isHovered(780, y, 500, 110);
-
-  push();
-  if (hovered) {
-    translate(1280, y + 55);
-    scale(1.2);
-    translate(-1280, -(y + 55));
-  }
-
-  //CARD
-  fill(COLOR_CARD);
-  if (hovered) {
-    stroke(COLOR_PINK);
-    strokeWeight(4);
-  } else {
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-  }
-  rect(780, y, 560, 110, 18);
-
-  //THUMBNAIL
-  fill(COLOR_PANEL);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(796, y + 16, 78, 78, 12);
-
-  //TEXT
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(22);
-  text(level.name, 898, y + 16);
-
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(15);
-  text(level.song, 898, y + 46);
-
-  //DIFFICULTY DOTS
-  stroke(COLOR_BORDER);
-  strokeWeight(1.5);
-  for (let i = 0; i < 5; i++) {
-    if (i < level.stars) {
-      fill(COLOR_PINK);
-    } else {
-      fill(COLOR_CARD);
-    }
-    circle(898 + i * 19, y + 76, 13);
-  }
-
-  //HIGHSCORE
-  noStroke();
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(15);
-  if (level.highscore > 0) {
-    text("highscore: " + level.highscore, 1010, y + 76);
-  }
-
-  pop();
-}
-
-function drawSoundTab() {
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(370, 110, 870, 480, 18);
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(22);
-  text("SOUND", 404, 136);
-
-    //SLIDERS
-  for (let i = 0; i < volumes.length; i++) {
-    const sliderY = 196 + i * 64;
-
-    //DRAGGING
-    if (mouseIsPressed && draggingSlider === i) {
-      tempVolumes[i] = constrain((mouseX - 560) / 540, 0, 1);
-    }
-
-    //LABEL
-    noStroke();
-    textAlign(LEFT, TOP);
-    textStyle(NORMAL);
-    fill(COLOR_TEXT);
-    textSize(18);
-    text(VOLUME_LABELS[i], 404, sliderY);
-
-    //TRACK
-    fill(COLOR_PANEL);
-    rect(560, sliderY + 8, 540, 10, 5);
-
-    //FILLED PART
-    fill(COLOR_PINK);
-    rect(560, sliderY + 8, 540 * tempVolumes[i], 10, 5);
-
-    //KNOB
-    fill(COLOR_CARD);
-    stroke(COLOR_PINK);
-    strokeWeight(3);
-    circle(560 + 540 * tempVolumes[i] - 15, sliderY - 2, 30);
-
-    //PERCENTAGE
-    noStroke();
-    textStyle(BOLD);
-    fill(COLOR_TEXT);
-    text(`${round(tempVolumes[i] * 100)}%`, 1130, sliderY);
-  }
-}
-
-function drawControlsTab() {
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(370, 110, 870, 480, 18);
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(22);
-  text("CONTROLS", 404, 136);
-
-  //CLICK WITH 
-  textSize(18);
-  textStyle(NORMAL);
-  text("Click with", 404, 198);
-
-  //BUTTONS
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(560, 184, 180, 54, 27);
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(NORMAL);
-  fill(COLOR_TEXT);
-  textSize(18);
-  text("Mouse", 622, 202);
-
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(760, 184, 180, 54, 27);
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(NORMAL);
-  fill(COLOR_TEXT);
-  textSize(18);
-  text("Keys Z/X", 815, 202);
-
-  //LINE
-  fill(COLOR_BORDER);
-  noStroke();
-  rect(404, 272, 802, 2, 27);
-
-  //KEYS
-  const keysOption = [
-    ["Mouse/Z/X", "Hit a circle"],
-    ["ESC", "Pause the game"],
-    ["ENTER", "Start a level"]
-  ];
-
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(22);
-  text("KEYS", 404, 300);
-
-  for(let i = 0; i < keysOption.length; i++){
-    const statY = 346 + i * 55;
-
-    //BUTTONS
-    fill(COLOR_CARD)
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-    rect(404, statY, 180, 44, 10)
-
-    //KEY TEXT
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textStyle(BOLD);
-    fill(COLOR_TEXT);
-    textSize(16);
-    text(keysOption[i][0], 494, statY + 22);
-    
-    //ACTION TEXT
-    textAlign(LEFT, TOP);
-    textStyle(NORMAL);
-    textSize(18);
-    text(keysOption[i][1], 610, statY + 12);
-  }
-}
-
-function drawHowToPlayTab() {
-  ellipseMode(CORNER);
-
-  //PANEL
-  fill(COLOR_CARD);
-  stroke(COLOR_BORDER);
-  strokeWeight(2);
-  rect(370, 110, 870, 480, 18);
-
-  //TITLE
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(BOLD);
-  fill(COLOR_TEXT);
-  textSize(22);
-  text("HOW TO PLAY", 404, 136);
-
-  //STEPS
-  const steps = [
-    ["Click the circle when the ring hits it", "Perfect timing gives the most points"],
-    ["Hold the mouse and follow the slider", "Let go too early and it counts as a miss"],
-    ["Don't miss too often", "Every miss costs a piece of your life bar"]
-  ];
-
-  for (let i = 0; i < steps.length; i++) {
-    const stepY = 186 + i * 106;
-
-    //STEP CARD
-    fill(COLOR_CARD);
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-    rect(404, stepY, 802, 92, 14);
-
-    //ICON BOX
-    fill(COLOR_PANEL);
-    stroke(COLOR_BORDER);
-    strokeWeight(2);
-    rect(420, stepY + 12, 68, 68, 10);
-
-    //ICON
-    if (i === 0) {
-      noFill();
-      stroke(COLOR_BLUE);
-      strokeWeight(2);
-      circle(430, stepY + 22, 48);
-
-      fill(COLOR_CARD);
-      stroke(COLOR_PINK);
-      strokeWeight(3);
-      circle(439, stepY + 31, 30);
-    } else if (i === 1) {
-      fill(COLOR_CARD);
-      stroke(COLOR_BORDER);
-      strokeWeight(2);
-      rect(428, stepY + 34, 52, 24, 12);
-
-      fill(COLOR_CARD);
-      stroke(COLOR_PINK);
-      strokeWeight(3);
-      circle(428, stepY + 34, 24);
-    } else {
-      fill(COLOR_CARD);
-      stroke(COLOR_BORDER);
-      strokeWeight(2);
-      rect(430, stepY + 39, 48, 14, 7);
-
-      noStroke();
-      fill(COLOR_PINK);
-      rect(430, stepY + 39, 18, 14, 7);
-    }
-
-    //STEP TEXT
-    noStroke();
-    textAlign(LEFT, TOP);
-    textStyle(BOLD);
-    fill(COLOR_TEXT);
-    textSize(20);
-    text(`${i + 1}.`, 512, stepY + 20);
-
-    textSize(18);
-    text(steps[i][0], 545, stepY + 20);
-
-    textStyle(NORMAL);
-    fill(COLOR_SUBTEXT);
-    textSize(14);
-    text(steps[i][1], 512, stepY + 54);
-  }
-
-  //POINTS
-  noStroke();
-  textAlign(LEFT, TOP);
-  textStyle(NORMAL);
-  fill(COLOR_SUBTEXT);
-  textSize(15);
-  text("Perfect = 300  •  Good = 100  •  Miss = 0  •  Higher combo = more points", 404, 520);
-}
-
-function drawObject(ball) {
-  if (currentScreen !== "game") {
-    return;
-  }
-  ellipseMode(CENTER);
-
-  if (ball.visible && gameFrame >= ball.start) {
-    ball.ringSize = 200 - (gameFrame - ball.start);
-
-    //BALL
-    fill(COLOR_CARD);
-    stroke(COLOR_PINK);
-    strokeWeight(4);
-    circle(ball.x, ball.y, 110);
-
-    //NUMBER
-    noStroke();
-    fill(COLOR_TEXT);
-    textAlign(CENTER, CENTER);
-    textStyle(BOLD);
-    textSize(32);
-    text(ball.number, ball.x, ball.y);
-
-    //RING
-    noFill();
-    stroke(COLOR_BLUE);
-    strokeWeight(2);
-    circle(ball.x, ball.y, max(110, ball.ringSize));
-
-    if (gameFrame > ball.start + HIT_FRAME + GOOD_WINDOW) {
-      ball.visible = false;
-      missHits = missHits + 1;
-      lives = lives - 1;
-      combo = 0;
-
-      if (lives <= 0 && currentScreen === "game") {
-        goToContinue();
-        return;
-      }
-    }
-  }
-}
-
-function startGame() {
-  currentScreen = "game";
-  const levelBalls = LEVELS[chosenLvl].balls;
-  balls = [];
-
-  for (let i = 0; i < levelBalls.length; i++) {
-    balls.push({
-      x: levelBalls[i].x,
-      y: levelBalls[i].y,
-      start: levelBalls[i].start,
-      ringSize: 200,
-      number: i + 1,
-      visible: true
-    });
-  }
-
-  gameFrame = 0;
-  score = 0;
-  combo = 0;
-  highestCombo = 0;
-  perfectHits = 0;
-  goodHits = 0;
-  missHits = 0;
-  if (chosenLvl === 2) {
-    MAX_LIVES = 10;
-  } else {
-    MAX_LIVES = 5;
-  }
-
-  lives = MAX_LIVES;
-  coinsEarned = 0;
-  hitEffects = [];
-
-  playSong();
-  currentScreen = "game";
-}
-
-function checkLevelEnd() {
-  if (currentScreen !== "game") {
-    return;
-  }
-  let allDone = true;
-
-  for (let i = 0; i < balls.length; i++) {
-    if (balls[i].visible) {
-      allDone = false;
-    }
-  }
-
-  if (allDone) {
-    coinsEarned = floor(score / 1000);
-    coins = coins + coinsEarned;
-
-    if (score > LEVELS[chosenLvl].highscore) {
-      LEVELS[chosenLvl].highscore = score;
-    }
-
-    stopSong();
-    currentScreen = "results";
-  }
-}
